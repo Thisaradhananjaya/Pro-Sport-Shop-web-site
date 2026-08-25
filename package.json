@@ -1,0 +1,23 @@
+{
+  "name": "pro-sport-shop",
+  "version": "1.0.0",
+  "description": "\"# Pro-Sport-Shop-web-site\"",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Thisaradhananjaya/Pro-Sport-Shop-web-site.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Thisaradhananjaya/Pro-Sport-Shop-web-site/issues"
+  },
+  "homepage": "https://github.com/Thisaradhananjaya/Pro-Sport-Shop-web-site#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
