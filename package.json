@@ -1,23 +1,39 @@
 {
   "name": "pro-sport-shop",
   "version": "1.0.0",
-  "description": "\"# Pro-Sport-Shop-web-site\"",
-  "main": "index.js",
+  "description": "PRO SPORT - Modern Athletic E-Commerce (MERN Stack)",
+  "main": "server/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "server": "nodemon server/server.js",
+    "client": "npm.cmd --prefix client run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "seed": "node server/seeder.js",
+    "seed:destroy": "node server/seeder.js -d",
+    "build": "npm.cmd --prefix client run build",
+    "start": "node server/server.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Thisaradhananjaya/Pro-Sport-Shop-web-site.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "mern",
+    "ecommerce",
+    "sports",
+    "react",
+    "express",
+    "mongodb"
+  ],
+  "author": "Pro Sport",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Thisaradhananjaya/Pro-Sport-Shop-web-site/issues"
-  },
-  "homepage": "https://github.com/Thisaradhananjaya/Pro-Sport-Shop-web-site#readme",
   "dependencies": {
-    "express": "^5.2.1"
+    "bcryptjs": "^3.0.3",
+    "concurrently": "^9.1.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.9.3",
+    "nodemon": "^3.1.14"
   }
 }
