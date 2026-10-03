@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
-import { adminLogin } from './adminApi';
 import './admin.css';
 
+/**
+ * AdminLogin
+ * Calls onLoginSuccess(email, password) which is handled
+ * by AdminApp → AuthContext.login() → /api/auth/login.
+ * On success the JWT is stored by AuthContext and AdminApp
+ * re-renders to show AdminDashboard.
+ */
 export function AdminLogin({ onLoginSuccess }) {
-  const [email, setEmail] = useState('admin@prosport.lk');
+  const [email, setEmail]     = useState('admin@prosport.com');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]     = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -14,14 +20,13 @@ export function AdminLogin({ onLoginSuccess }) {
     setLoading(true);
 
     try {
-      const data = await adminLogin(email, password);
-      if (data.success && data.token) {
-        localStorage.setItem('prosport_admin_token', data.token);
-        localStorage.setItem('prosport_admin_info', JSON.stringify(data.admin));
-        onLoginSuccess(data.admin);
-      } else {
-        setError(data.message || 'Invalid credentials. Please try again.');
+      const data = await onLoginSuccess(email, password);
+      if (!data || !data.success) {
+        setError(data?.message || 'Invalid credentials. Please try again.');
+      } else if (data.user?.role !== 'admin') {
+        setError('Access denied — this portal is for administrators only.');
       }
+      // On success, AdminApp's useEffect detects isAdmin and renders dashboard.
     } catch {
       setError('Unable to connect to the server. Make sure the backend is running.');
     } finally {
@@ -80,7 +85,7 @@ export function AdminLogin({ onLoginSuccess }) {
                 className="admin-form-input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@prosport.lk"
+                placeholder="admin@prosport.com"
                 required
                 autoComplete="username"
               />
@@ -127,7 +132,7 @@ export function AdminLogin({ onLoginSuccess }) {
         </form>
 
         <div className="admin-login-footer">
-          Default: admin@prosport.lk / ProSport@2026
+          Default: admin@prosport.com / Admin@123
         </div>
       </div>
     </div>

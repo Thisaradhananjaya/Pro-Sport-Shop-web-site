@@ -1,18 +1,14 @@
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Admin = require('../models/Admin');
 const Product = require('../models/Product');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'prosport_admin_secret_2026';
-const JWT_EXPIRES = '24h';
-
-// Admin credentials — read from .env, with safe defaults for dev
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@prosport.lk').toLowerCase();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ProSport@2026';
-const ADMIN_NAME = process.env.ADMIN_NAME || 'Pro Sport Admin';
+const JWT_SECRET = process.env.JWT_SECRET || 'prosport_jwt_super_secret_change_in_production_2026';
+const JWT_EXPIRES = '7d';
 
 /**
  * POST /api/admin/login
- * Validates admin credentials and returns a signed JWT.
+ * Legacy admin-only login endpoint (kept for backward compatibility).
+ * The unified /api/auth/login also handles admin login.
  */
 exports.login = async (req, res) => {
   try {
@@ -22,27 +18,18 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email and password are required' });
     }
 
-    // Compare against env-configured admin credentials
-    if (email.toLowerCase() !== ADMIN_EMAIL) {
+    const admin = await Admin.findOne({ email: email.toLowerCase() });
+    if (!admin) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Support both plain-text env password and bcrypt-hashed passwords
-    let passwordMatch = false;
-    if (ADMIN_PASSWORD.startsWith('$2')) {
-      // Looks like a bcrypt hash
-      passwordMatch = await bcrypt.compare(password, ADMIN_PASSWORD);
-    } else {
-      // Plain-text comparison (dev mode)
-      passwordMatch = password === ADMIN_PASSWORD;
-    }
-
-    if (!passwordMatch) {
+    const match = await admin.comparePassword(password);
+    if (!match) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     const token = jwt.sign(
-      { email: ADMIN_EMAIL, name: ADMIN_NAME, role: 'admin' },
+      { id: admin._id, email: admin.email, name: admin.name, role: 'admin' },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES }
     );
@@ -51,7 +38,9 @@ exports.login = async (req, res) => {
       success: true,
       message: 'Login successful',
       token,
-      admin: { email: ADMIN_EMAIL, name: ADMIN_NAME },
+      admin: { id: admin._id, email: admin.email, name: admin.name, role: 'admin' },
+      // Also populate 'user' field for compatibility with AuthContext
+      user: { id: admin._id, email: admin.email, name: admin.name, role: 'admin' },
     });
   } catch (error) {
     console.error('Error in admin login:', error);
@@ -77,7 +66,6 @@ exports.getStats = async (req, res) => {
       ]);
       agg.forEach(item => { categoryBreakdown[item._id] = item.count; });
     } else {
-      // Fallback: use mock data
       const { productsData } = require('../data/seedData');
       productCount = productsData.length;
       productsData.forEach(p => {

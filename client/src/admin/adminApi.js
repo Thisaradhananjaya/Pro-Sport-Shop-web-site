@@ -1,7 +1,7 @@
 const API_BASE = '/api';
 
-/** Get stored JWT token */
-const getToken = () => localStorage.getItem('prosport_admin_token');
+/** Get stored JWT token (shared key with AuthContext) */
+const getToken = () => localStorage.getItem('prosport_token');
 
 /** Build standard auth headers */
 const authHeaders = () => ({
@@ -12,7 +12,7 @@ const authHeaders = () => ({
 /* ---- Auth ---- */
 
 export const adminLogin = async (email, password) => {
-  const res = await fetch(`${API_BASE}/admin/login`, {
+  const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),

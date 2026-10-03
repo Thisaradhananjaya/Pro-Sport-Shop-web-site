@@ -1,20 +1,19 @@
-import React, { useState } from 'react';
-import { X, User, Lock, Mail, ArrowRight } from 'lucide-react';
+import React from 'react';
+import { X, User, LogIn, UserPlus, Shield } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 export const AccountModal = () => {
   const { isAccountOpen, setIsAccountOpen, showToast } = useCart();
-  const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const { user, isAuthenticated, isAdmin, isCustomer, logout } = useAuth();
 
   if (!isAccountOpen) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    showToast(isRegister ? `Account registered for ${email}!` : `Welcome back! Signed in as ${email}`);
+  const handleLogout = async () => {
     setIsAccountOpen(false);
+    await logout();
+    showToast('You have been signed out. See you soon!');
+    window.location.href = '/';
   };
 
   return (
@@ -24,7 +23,7 @@ export const AccountModal = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <User size={20} style={{ color: '#FF5500' }} />
             <h3 style={{ fontSize: '18px', fontWeight: 800 }}>
-              {isRegister ? 'Create Pro Sport Account' : 'Sign In to Account'}
+              {isAuthenticated ? 'My Account' : 'Sign In / Register'}
             </h3>
           </div>
           <button
@@ -37,85 +36,77 @@ export const AccountModal = () => {
         </div>
 
         <div className="modal-body">
-          <form onSubmit={handleSubmit}>
-            {isRegister && (
-              <div className="form-group">
-                <label className="form-label">Full Name</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Thisara Dhananjaya"
-                    className="form-input"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
+          {isAuthenticated ? (
+            /* ── Logged-in view ── */
+            <div className="account-modal-user">
+              <div className="account-modal-avatar">
+                {isAdmin
+                  ? <Shield size={28} style={{ color: '#FF5500' }} />
+                  : <span>{user.name.charAt(0).toUpperCase()}</span>
+                }
+              </div>
+              <div className="account-modal-info">
+                <div className="account-modal-name">{user.name}</div>
+                <div className="account-modal-email">{user.email}</div>
+                <div className={`account-modal-role ${isAdmin ? 'account-modal-role--admin' : ''}`}>
+                  {isAdmin ? '⚙ Administrator' : '👤 Customer'}
                 </div>
               </div>
-            )}
 
-            <div className="form-group">
-              <label className="form-label">Email Address</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="email"
-                  required
-                  placeholder="athlete@prosport.lk"
-                  className="form-input"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  className="form-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="checkout-btn"
-              style={{ marginTop: '12px' }}
-            >
-              <span>{isRegister ? 'REGISTER ACCOUNT' : 'SIGN IN'}</span>
-            </button>
-          </form>
-
-          <div style={{ marginTop: '18px', textAlign: 'center', fontSize: '13px', color: '#94A3B8' }}>
-            {isRegister ? (
-              <span>
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  style={{ color: '#FF5500', fontWeight: 700, textDecoration: 'underline' }}
-                  onClick={() => setIsRegister(false)}
+              {isAdmin && (
+                <a
+                  href="/admin/dashboard"
+                  className="account-modal-action-btn account-modal-action-btn--admin"
+                  onClick={() => setIsAccountOpen(false)}
                 >
-                  Sign In
-                </button>
-              </span>
-            ) : (
-              <span>
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  style={{ color: '#FF5500', fontWeight: 700, textDecoration: 'underline' }}
-                  onClick={() => setIsRegister(true)}
-                >
-                  Create One
-                </button>
-              </span>
-            )}
-          </div>
+                  <Shield size={15} />
+                  Go to Dashboard
+                </a>
+              )}
+
+              <button
+                id="account-modal-logout"
+                type="button"
+                className="account-modal-logout-btn"
+                onClick={handleLogout}
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            /* ── Guest view ── */
+            <div className="account-modal-guest">
+              <p style={{ color: '#94A3B8', marginBottom: '20px', fontSize: '14px', textAlign: 'center' }}>
+                Sign in to track orders, save your wishlist, and enjoy a faster checkout experience.
+              </p>
+
+              <a
+                href="/login"
+                id="account-modal-login-link"
+                className="checkout-btn"
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', textDecoration: 'none', marginBottom: '12px' }}
+                onClick={() => setIsAccountOpen(false)}
+              >
+                <LogIn size={16} />
+                SIGN IN
+              </a>
+
+              <a
+                href="/register"
+                id="account-modal-register-link"
+                className="checkout-btn"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center',
+                  textDecoration: 'none', background: 'transparent',
+                  border: '1.5px solid rgba(255,85,0,0.4)', color: '#FF5500'
+                }}
+                onClick={() => setIsAccountOpen(false)}
+              >
+                <UserPlus size={16} />
+                CREATE ACCOUNT
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>

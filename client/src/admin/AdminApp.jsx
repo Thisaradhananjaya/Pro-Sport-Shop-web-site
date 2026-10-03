@@ -1,47 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { AdminLogin } from './AdminLogin';
 import { AdminDashboard } from './AdminDashboard';
+import { useAuth } from '../context/AuthContext';
 import './admin.css';
 
+/**
+ * AdminApp — root of the /admin SPA.
+ *
+ * Auth is now handled via the shared AuthContext (JWT + localStorage).
+ * - If not authenticated at all → show AdminLogin
+ * - If authenticated but role !== 'admin' → redirect to /
+ * - If authenticated as admin → show AdminDashboard
+ */
 export function AdminApp() {
-  const [admin, setAdmin] = useState(null);
-  const [checking, setChecking] = useState(true);
+  const { user, isAuthenticated, isAdmin, authLoading, login, logout } = useAuth();
 
-  // Check for an existing session on mount
+  /* If a customer somehow lands on /admin, send them away */
   useEffect(() => {
-    const token = localStorage.getItem('prosport_admin_token');
-    const info = localStorage.getItem('prosport_admin_info');
-    if (token && info) {
-      try {
-        // Decode JWT to check expiry without a library
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.exp && payload.exp * 1000 > Date.now()) {
-          setAdmin(JSON.parse(info));
-        } else {
-          // Token expired — clear storage
-          localStorage.removeItem('prosport_admin_token');
-          localStorage.removeItem('prosport_admin_info');
-        }
-      } catch {
-        localStorage.removeItem('prosport_admin_token');
-        localStorage.removeItem('prosport_admin_info');
-      }
+    if (!authLoading && isAuthenticated && !isAdmin) {
+      window.location.href = '/';
     }
-    setChecking(false);
-  }, []);
+  }, [authLoading, isAuthenticated, isAdmin]);
 
-  const handleLoginSuccess = (adminInfo) => {
-    setAdmin(adminInfo);
+  const handleLoginSuccess = async (email, password) => {
+    return login({ email, password });
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('prosport_admin_token');
-    localStorage.removeItem('prosport_admin_info');
-    setAdmin(null);
+  const handleLogout = async () => {
+    await logout();
+    // Stay on /admin — AdminLogin will render
   };
 
-  if (checking) {
-    // Brief splash while checking session
+  if (authLoading) {
     return (
       <div className="admin-root" style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -57,8 +47,8 @@ export function AdminApp() {
 
   return (
     <div className="admin-root">
-      {admin ? (
-        <AdminDashboard admin={admin} onLogout={handleLogout} />
+      {isAuthenticated && isAdmin ? (
+        <AdminDashboard admin={user} onLogout={handleLogout} />
       ) : (
         <AdminLogin onLoginSuccess={handleLoginSuccess} />
       )}

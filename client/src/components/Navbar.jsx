@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, User, ShoppingCart, X, Menu } from 'lucide-react';
+import { Search, User, ShoppingCart, X, Menu, LogOut, ChevronDown, Shield } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 const NAV_LINKS = [
   { id: 'home', label: 'HOME' },
@@ -22,11 +23,14 @@ export const Navbar = ({
   onSelectProduct
 }) => {
   const { cartCount, setIsCartOpen, setIsAccountOpen, formatPrice } = useCart();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const searchRef = useRef(null);
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen]     = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen]     = useState(false);
+  const [userMenuOpen, setUserMenuOpen]         = useState(false);
+  const searchRef  = useRef(null);
+  const userMenuRef = useRef(null);
 
-  // Filter search matches for quick dropdown
+  /* Filter search matches for quick dropdown */
   const searchResults = searchQuery.trim() === ''
     ? []
     : products.filter(p =>
@@ -35,15 +39,25 @@ export const Navbar = ({
         p.category?.toLowerCase().includes(searchQuery.toLowerCase())
       ).slice(0, 5);
 
+  /* Close dropdowns on outside click */
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setIsDropdownOpen(false);
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleLogout = async () => {
+    setUserMenuOpen(false);
+    await logout();
+    window.location.href = '/';
+  };
 
   return (
     <header className="header-wrapper">
@@ -126,14 +140,90 @@ export const Navbar = ({
 
           {/* User Account & Cart Button */}
           <div className="header-actions">
-            <button
-              type="button"
-              className="account-btn"
-              onClick={() => setIsAccountOpen(true)}
-            >
-              <User size={16} />
-              <span>Account</span>
-            </button>
+            {isAuthenticated ? (
+              /* ─── Logged-in user menu ─── */
+              <div className="nav-user-menu" ref={userMenuRef}>
+                <button
+                  type="button"
+                  id="nav-user-btn"
+                  className={`account-btn account-btn--active ${isAdmin ? 'account-btn--admin' : ''}`}
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="true"
+                >
+                  {isAdmin ? <Shield size={15} /> : <User size={15} />}
+                  <span className="nav-user-name">
+                    {user.name.split(' ')[0]}
+                  </span>
+                  <ChevronDown size={13} className={`nav-chevron ${userMenuOpen ? 'nav-chevron--open' : ''}`} />
+                </button>
+
+                {userMenuOpen && (
+                  <div className="nav-user-dropdown" role="menu">
+                    <div className="nav-user-info">
+                      <div className="nav-user-avatar">
+                        {isAdmin ? <Shield size={14} /> : user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="nav-user-fullname">{user.name}</div>
+                        <div className="nav-user-email">{user.email}</div>
+                        <div className={`nav-user-role-badge ${isAdmin ? 'nav-user-role-badge--admin' : ''}`}>
+                          {isAdmin ? '⚙ Admin' : '👤 Customer'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="nav-user-divider" />
+
+                    {isAdmin && (
+                      <a
+                        href="/admin/dashboard"
+                        className="nav-user-item nav-user-item--admin"
+                        role="menuitem"
+                      >
+                        <Shield size={14} />
+                        Admin Dashboard
+                      </a>
+                    )}
+
+                    {!isAdmin && (
+                      <button
+                        type="button"
+                        className="nav-user-item"
+                        role="menuitem"
+                        onClick={() => { setUserMenuOpen(false); setIsAccountOpen(true); }}
+                      >
+                        <User size={14} />
+                        My Account
+                      </button>
+                    )}
+
+                    <div className="nav-user-divider" />
+
+                    <button
+                      id="nav-logout-btn"
+                      type="button"
+                      className="nav-user-item nav-user-item--logout"
+                      role="menuitem"
+                      onClick={handleLogout}
+                    >
+                      <LogOut size={14} />
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* ─── Guest account button ─── */
+              <button
+                type="button"
+                className="account-btn"
+                onClick={() => window.location.href = '/login'}
+              >
+                <User size={16} />
+                <span>Sign In</span>
+              </button>
+            )}
 
             <button
               type="button"
