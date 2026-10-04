@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { CheckoutPage } from './pages/CheckoutPage';
+import { PaymentSuccess } from './pages/PaymentSuccess';
+import { PaymentCancel } from './pages/PaymentCancel';
+import { CartPage } from './pages/CartPage';
 import { Navbar } from './components/Navbar';
+
 import { HeroSection } from './components/HeroSection';
 import { TrustedBrands } from './components/TrustedBrands';
 import { CategoryGrid } from './components/CategoryGrid';
@@ -13,6 +19,7 @@ import { AccountModal } from './components/AccountModal';
 import { Toast } from './components/Toast';
 import { fetchProducts, fetchCategories } from './services/api';
 import { useCart } from './context/CartContext';
+
 
 export function App() {
   const [activeCategory, setActiveCategory] = useState('home');
@@ -69,53 +76,66 @@ export function App() {
   });
 
   return (
-    <div className="pro-sport-app">
-      {/* Header & Subnav */}
-      <Navbar
-        activeCategory={activeCategory}
-        onSelectCategory={handleSelectCategory}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        products={products}
-        onSelectProduct={(p) => setQuickViewProduct(p)}
+    <Routes>
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
+      <Route path="/payment/success" element={<PaymentSuccess />} />
+      <Route path="/payment/cancel" element={<PaymentCancel />} />
+
+      <Route
+        path="*"
+        element={
+          <div className="pro-sport-app">
+            {/* Header & Subnav */}
+            <Navbar
+              activeCategory={activeCategory}
+              onSelectCategory={handleSelectCategory}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              products={products}
+              onSelectProduct={(p) => setQuickViewProduct(p)}
+            />
+
+            {/* Main Home Hero Section */}
+            <HeroSection onShopNow={handleShopNow} />
+
+            {/* Light Content Container for Store Sections */}
+            <main className="light-section-wrapper">
+              {/* Trusted Brands */}
+              <TrustedBrands onSelectBrand={handleSelectBrand} />
+
+              {/* Shop by Category */}
+              <CategoryGrid
+                categories={categories}
+                onSelectCategory={handleSelectCategory}
+              />
+
+              {/* Latest Products */}
+              <LatestProducts
+                products={displayedProducts.length > 0 ? displayedProducts : products}
+                onSelectCategory={handleSelectCategory}
+                activeCategory={activeCategory}
+              />
+
+              {/* Feature Highlights Bar */}
+              <FeaturesBar />
+            </main>
+
+            {/* Dark Footer */}
+            <Footer onSelectCategory={handleSelectCategory} />
+
+            {/* Modals & Overlays */}
+            <CartDrawer />
+            <CheckoutModal />
+            <QuickViewModal />
+            <AccountModal />
+            <Toast />
+          </div>
+        }
       />
-
-      {/* Main Home Hero Section */}
-      <HeroSection onShopNow={handleShopNow} />
-
-      {/* Light Content Container for Store Sections */}
-      <main className="light-section-wrapper">
-        {/* Trusted Brands */}
-        <TrustedBrands onSelectBrand={handleSelectBrand} />
-
-        {/* Shop by Category */}
-        <CategoryGrid
-          categories={categories}
-          onSelectCategory={handleSelectCategory}
-        />
-
-        {/* Latest Products */}
-        <LatestProducts
-          products={displayedProducts.length > 0 ? displayedProducts : products}
-          onSelectCategory={handleSelectCategory}
-          activeCategory={activeCategory}
-        />
-
-        {/* Feature Highlights Bar */}
-        <FeaturesBar />
-      </main>
-
-      {/* Dark Footer */}
-      <Footer onSelectCategory={handleSelectCategory} />
-
-      {/* Modals & Overlays */}
-      <CartDrawer />
-      <CheckoutModal />
-      <QuickViewModal />
-      <AccountModal />
-      <Toast />
-    </div>
+    </Routes>
   );
 }
+
 
 export default App;

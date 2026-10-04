@@ -32,6 +32,7 @@ const authRoutes    = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes   = require('./routes/orderRoutes');
 const adminRoutes   = require('./routes/adminRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -42,12 +43,15 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ── API Routes ──
 app.use('/api/auth',     authRoutes);     // register / login / logout / me
 app.use('/api/products', productRoutes);
 app.use('/api/orders',   orderRoutes);
 app.use('/api/admin',    adminRoutes);
+app.use('/api/payment',  paymentRoutes);
+
 
 // ── Health check ──
 app.get('/api/health', (req, res) => {

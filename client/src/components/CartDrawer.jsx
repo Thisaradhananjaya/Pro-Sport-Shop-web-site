@@ -108,11 +108,12 @@ export const CartDrawer = () => {
               className="checkout-btn"
               onClick={() => {
                 setIsCartOpen(false);
-                setIsCheckoutOpen(true);
+                window.location.href = '/checkout';
               }}
             >
               <span>PROCEED TO CHECKOUT</span>
             </button>
+
           </div>
         )}
       </div>
