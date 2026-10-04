@@ -8,6 +8,7 @@
     "client": "npm.cmd --prefix client run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "seed": "node server/seeder.js",
+    "seed:admin": "node server/seedAdmin.js",
     "seed:destroy": "node server/seeder.js -d",
     "build": "npm.cmd --prefix client run build",
     "start": "node server/server.js"

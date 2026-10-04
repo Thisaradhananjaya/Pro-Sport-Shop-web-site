@@ -5,11 +5,34 @@ const connectDB = async () => {
   const isAtlas = connUri.includes('mongodb+srv');
 
   try {
-    const conn = await mongoose.connect(connUri, {
-      serverSelectionTimeoutMS: 5000,  // 5 s timeout (Atlas needs more than 2.5 s sometimes)
+    // ✅ If already connected, reuse the connection
+    if (mongoose.connection.readyState === 1) {
+      console.log('ℹ️  MongoDB already connected. Reusing existing connection.');
+      return true;
+    }
+
+    // ✅ Connect with proper options
+    await mongoose.connect(connUri, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
     });
 
-    const host = conn.connection.host;
+    // ✅ Wait until connection is fully established
+    await new Promise((resolve, reject) => {
+      if (mongoose.connection.readyState === 1) return resolve();
+      const timeout = setTimeout(() => reject(new Error('Connection timeout')), 10000);
+      mongoose.connection.once('connected', () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+      mongoose.connection.once('error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+    });
+
+    const host = mongoose.connection.host;
     if (isAtlas) {
       console.log(`✅ [MongoDB Atlas Connected]: ${host}`);
     } else {
@@ -20,14 +43,11 @@ const connectDB = async () => {
   } catch (error) {
     if (isAtlas) {
       console.error('❌ [MongoDB Atlas Error]: Could not connect to Atlas.');
-      console.error('   → Check your MONGO_URI in .env — make sure USERNAME, PASSWORD, and CLUSTER are correct.');
       console.error(`   → Error: ${error.message}`);
     } else {
       console.warn('⚠️  [MongoDB Notice]: Could not connect to local MongoDB.');
-      console.warn('   → Make sure MongoDB is running locally (mongod), or switch to Atlas in .env');
       console.warn(`   → Error: ${error.message}`);
     }
-
     console.log('🔄 [System]: Running in offline/mock-data fallback mode.');
     return false;
   }

@@ -6,21 +6,29 @@ import { CartProvider } from './context/CartContext.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 import { RegisterPage } from './pages/RegisterPage.jsx';
+import { ProtectedRoute } from './components/ProtectedRoute.jsx';
 import './index.css';
 
 const path = window.location.pathname;
 
 /* ─── Simple client-side routing ─────────────────────
-   /admin/*   → Admin SPA (own auth flow)
+   /admin/*   → Admin SPA — protected, admin-only
    /login     → Unified Login page
    /register  → Customer Registration page
    *          → Main store
 ──────────────────────────────────────────────────── */
 const renderApp = () => {
   if (path.startsWith('/admin')) {
-    // Admin SPA keeps its own localStorage auth for now
     return (
       <AuthProvider>
+        {/*
+          AdminApp handles its own RBAC:
+          • Not logged in         → shows AdminLogin form
+          • Customer logged in    → redirects to /
+          • Admin logged in       → shows AdminDashboard
+          ProtectedRoute is available for protecting individual
+          pages — import it from components/ProtectedRoute.jsx
+        */}
         <AdminApp />
       </AuthProvider>
     );
@@ -29,6 +37,7 @@ const renderApp = () => {
   if (path === '/login') {
     return (
       <AuthProvider>
+        {/* LoginPage handles its own redirect-if-already-authenticated */}
         <LoginPage />
       </AuthProvider>
     );
@@ -37,12 +46,13 @@ const renderApp = () => {
   if (path === '/register') {
     return (
       <AuthProvider>
+        {/* RegisterPage handles its own redirect-if-already-authenticated */}
         <RegisterPage />
       </AuthProvider>
     );
   }
 
-  // Main store
+  // Main store — public, no auth required (auth state is available via context)
   return (
     <AuthProvider>
       <CartProvider>

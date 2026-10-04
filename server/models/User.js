@@ -23,7 +23,9 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['customer'],   // Only 'customer' allowed here. Admin lives in Admin model.
+      // 'admin' is allowed here but only the seedAdmin utility can set it.
+      // The /api/auth/register route always force-sets this to 'customer'.
+      enum: ['customer', 'admin'],
       default: 'customer',
     },
     isActive: {
@@ -34,10 +36,10 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-/* Hash password before saving */
+/* Hash password before saving (salt rounds = 10) */
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(12);
+  const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });

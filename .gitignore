@@ -1,1 +1,56 @@
+# ══════════════════════════════════════════════════════════════
+# PRO SPORT — Root .gitignore (covers ALL sub-folders)
+# ══════════════════════════════════════════════════════════════
+
+# ── Node ──
 node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Environment Variables (root + all sub-folders) ──
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+*.env
+!.env.example
+!*.env.example
+
+# ── Credentials ──
+atlas-credentials.env
+*-credentials.env
+*credentials.json
+secrets.json
+
+# ── Build Output ──
+dist/
+dist-ssr/
+build/
+.vite/
+.cache/
+**/dist/
+**/dist-ssr/
+**/build/
+**/.vite/
+
+# ── Vite ──
+*.local
+
+# ── OS Files ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ──
+logs/
+*.log

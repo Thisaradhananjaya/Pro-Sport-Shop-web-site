@@ -44,8 +44,8 @@ export function RegisterPage() {
     try {
       const data = await register({ name: name.trim(), email, password });
       if (data.success) {
-        setSuccess('Account created! Redirecting to the store…');
-        setTimeout(() => { window.location.href = '/'; }, 1500);
+        setSuccess('Account created! Redirecting to login…');
+        setTimeout(() => { window.location.href = '/login'; }, 1500);
       } else {
         setError(data.message || 'Registration failed. Please try again.');
       }
