@@ -1,29 +1,25 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import axios from 'axios';
-import { ShieldCheck, Lock, CreditCard, ShoppingBag, ArrowLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Lock, CreditCard, ShoppingBag, ArrowLeft, AlertCircle, CheckCircle2, ShoppingCart } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 export const CheckoutPage = () => {
+  const { cartItems, cartSubtotal, formatPrice } = useCart();
+
   const [formData, setFormData] = useState({
-    firstName: 'Thisara',
-    lastName: 'Dhananjaya',
-    email: 'thisara@example.com',
-    phone: '0771234567',
-    address: 'No 45, Temple Road',
-    city: 'Colombo',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const orderItem = {
-    name: 'Nike Pegasus 40 Running Shoes',
-    tag: 'Men’s Road Running • Size UK 9',
-    qty: 1,
-    unitPrice: 29500.0,
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80',
-  };
-
-  const amount = 29500.0;
+  // Dynamically computed from real cart
+  const amount = parseFloat(cartSubtotal.toFixed(2));
   const currency = 'LKR';
 
   const handleChange = (e) => {
@@ -35,6 +31,12 @@ export const CheckoutPage = () => {
 
   const handlePayHereSubmit = async (e) => {
     e.preventDefault();
+
+    if (cartItems.length === 0) {
+      setError('Your cart is empty. Please add items before checking out.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -42,12 +44,17 @@ export const CheckoutPage = () => {
       // 1. Generate unique Order ID
       const orderId = `PROSPORT-${Date.now()}`;
 
-      // 2. Request hash and payment payload from backend
+      // 2. Build human-readable items string from real cart
+      const itemsSummary = cartItems
+        .map((item) => `${item.quantity || 1}x ${item.title}`)
+        .join(', ');
+
+      // 3. Request hash and payment payload from backend
       const response = await axios.post('/api/payment/initiate', {
         orderId,
         amount: amount,
         currency: currency,
-        items: '1x Nike Pegasus 40',
+        items: itemsSummary,
         customer: {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -65,7 +72,7 @@ export const CheckoutPage = () => {
         throw new Error('Invalid payment initialization response from server.');
       }
 
-      // 3. Create a dynamic hidden HTML form and submit to PayHere Sandbox
+      // 4. Create a dynamic hidden HTML form and submit to PayHere Sandbox
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = actionUrl;
@@ -91,6 +98,12 @@ export const CheckoutPage = () => {
       setLoading(false);
     }
   };
+
+  // Format amount for the Pay button label (e.g. 53,200.00)
+  const formattedAmount = amount.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#030712', color: '#f9fafb', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -139,12 +152,25 @@ export const CheckoutPage = () => {
           </div>
         )}
 
+        {/* Empty cart warning */}
+        {cartItems.length === 0 && (
+          <div style={{ backgroundColor: '#f59e0b15', border: '1px solid #f59e0b50', color: '#fcd34d', padding: '20px 24px', borderRadius: '10px', marginBottom: '28px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <ShoppingCart size={24} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <div>
+              <p style={{ fontWeight: '700', margin: '0 0 4px 0', fontSize: '15px' }}>Your cart is empty</p>
+              <p style={{ margin: 0, fontSize: '13px', color: '#d1a012' }}>
+                Please <a href="/" style={{ color: '#ff6b00', textDecoration: 'underline' }}>add items to your cart</a> before proceeding to checkout.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '32px', alignItems: 'start' }}>
           {/* Left Column: Shipping Form */}
           <div style={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '12px', padding: '28px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '14px' }}>
               <ShieldCheck size={22} style={{ color: '#ff6b00' }} />
-              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', margin: 0 }}>Customer & Shipping Details</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#ffffff', margin: 0 }}>Customer &amp; Shipping Details</h2>
             </div>
 
             <form onSubmit={handlePayHereSubmit}>
@@ -245,17 +271,17 @@ export const CheckoutPage = () => {
               {/* Pay Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || cartItems.length === 0}
                 style={{
                   width: '100%',
                   padding: '15px 24px',
-                  backgroundColor: loading ? '#2563eb80' : '#2563eb',
+                  backgroundColor: (loading || cartItems.length === 0) ? '#2563eb80' : '#2563eb',
                   color: '#ffffff',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '16px',
                   fontWeight: '700',
-                  cursor: loading ? 'not-allowed' : 'pointer',
+                  cursor: (loading || cartItems.length === 0) ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -265,7 +291,13 @@ export const CheckoutPage = () => {
                 }}
               >
                 <CreditCard size={20} />
-                <span>{loading ? 'Connecting to PayHere...' : 'Pay with PayHere (Rs. 29,500.00)'}</span>
+                <span>
+                  {loading
+                    ? 'Connecting to PayHere...'
+                    : cartItems.length === 0
+                    ? 'Cart is Empty'
+                    : `Pay with PayHere (Rs. ${formattedAmount})`}
+                </span>
               </button>
             </form>
           </div>
@@ -274,31 +306,66 @@ export const CheckoutPage = () => {
           <div style={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '12px', padding: '24px', position: 'sticky', top: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px', borderBottom: '1px solid #1f2937', paddingBottom: '12px' }}>
               <ShoppingBag size={20} style={{ color: '#ff6b00' }} />
-              <h2 style={{ fontSize: '17px', fontWeight: '700', color: '#ffffff', margin: 0 }}>Order Summary</h2>
+              <h2 style={{ fontSize: '17px', fontWeight: '700', color: '#ffffff', margin: 0 }}>
+                Order Summary
+                {cartItems.length > 0 && (
+                  <span style={{ marginLeft: '8px', fontSize: '12px', color: '#9ca3af', fontWeight: '400' }}>
+                    ({cartItems.reduce((a, b) => a + (b.quantity || 1), 0)} item{cartItems.reduce((a, b) => a + (b.quantity || 1), 0) !== 1 ? 's' : ''})
+                  </span>
+                )}
+              </h2>
             </div>
 
-            {/* Product Card */}
-            <div style={{ display: 'flex', gap: '14px', backgroundColor: '#030712', border: '1px solid #1f2937', borderRadius: '8px', padding: '14px', marginBottom: '20px' }}>
-              <img
-                src={orderItem.image}
-                alt={orderItem.name}
-                style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #374151' }}
-              />
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#ffffff', margin: '0 0 4px 0' }}>{orderItem.name}</h4>
-                <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 8px 0' }}>{orderItem.tag}</p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>Qty: {orderItem.qty}</span>
-                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#ff6b00' }}>Rs. 29,500.00</span>
-                </div>
+            {/* Cart Items List */}
+            {cartItems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: '#6b7280' }}>
+                <ShoppingCart size={36} style={{ opacity: 0.3, margin: '0 auto 10px' }} />
+                <p style={{ fontSize: '13px', margin: 0 }}>No items in cart</p>
               </div>
-            </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                {cartItems.map((item) => {
+                  const id = item.id || item._id || item.title;
+                  const itemTotal = item.price * (item.quantity || 1);
+                  return (
+                    <div
+                      key={id}
+                      style={{ display: 'flex', gap: '14px', backgroundColor: '#030712', border: '1px solid #1f2937', borderRadius: '8px', padding: '14px' }}
+                    >
+                      {item.image && (
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #374151', flexShrink: 0 }}
+                        />
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <h4 style={{ fontSize: '13px', fontWeight: '700', color: '#ffffff', margin: '0 0 4px 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.title}
+                        </h4>
+                        {item.category && (
+                          <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 6px 0' }}>{item.category}</p>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                            Qty: {item.quantity || 1} x {formatPrice(item.price)}
+                          </span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#ff6b00' }}>
+                            {formatPrice(itemTotal)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Price Calculations */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderBottom: '1px solid #1f2937', paddingBottom: '16px', marginBottom: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#9ca3af' }}>
                 <span>Subtotal</span>
-                <span>Rs. 29,500.00</span>
+                <span>{formatPrice(cartSubtotal)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#9ca3af' }}>
                 <span>Delivery (Colombo Metro)</span>
@@ -313,7 +380,9 @@ export const CheckoutPage = () => {
             {/* Total Row */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <span style={{ fontSize: '16px', fontWeight: '700', color: '#ffffff' }}>Total Payable</span>
-              <span style={{ fontSize: '20px', fontWeight: '900', color: '#ff6b00' }}>Rs. 29,500.00</span>
+              <span style={{ fontSize: '20px', fontWeight: '900', color: '#ff6b00' }}>
+                Rs. {formattedAmount}
+              </span>
             </div>
 
             {/* Gateway Badge Box */}
