@@ -1,15 +1,28 @@
-import React from 'react';
+﻿import React, { useEffect } from 'react';
 import { CheckCircle, Home, ShoppingBag, ArrowRight } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 export const PaymentSuccess = () => {
-  // Read any return query params from PayHere if present (e.g. order_id)
+  const { clearCart } = useCart();
+
+  // On mount: clear the cart both via context (updates navbar count)
+  // and directly in localStorage (safety net for fresh-page-load scenarios)
+  useEffect(() => {
+    clearCart();
+    localStorage.removeItem('prosport_cart');
+  }, []);
+
+  // Read any return query params from PayHere if present
   const queryParams = new URLSearchParams(window.location.search);
-  const orderId = queryParams.get('order_id') || `PROSPORT-${Date.now().toString().slice(-6)}`;
+  const orderId     = queryParams.get('order_id')  || `PROSPORT-${Date.now().toString().slice(-6)}`;
+  const amountPaid  = queryParams.get('amount')     || null;
+  const statusCode  = queryParams.get('status_code') || '2';  // PayHere sends 2 for success
+  const currency    = queryParams.get('currency')   || 'LKR';
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#030712', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <div style={{ maxWidth: '520px', width: '100%', backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '16px', padding: '48px 32px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
-        
+
         {/* Large Green Checkmark */}
         <div style={{ width: '88px', height: '88px', backgroundColor: '#10b98115', border: '2px solid #10b981', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
           <CheckCircle size={52} style={{ color: '#10b981' }} />
@@ -22,7 +35,7 @@ export const PaymentSuccess = () => {
 
         {/* Subtitle */}
         <p style={{ fontSize: '16px', color: '#9ca3af', margin: '0 0 28px 0' }}>
-          Your order has been placed successfully.
+          Your order has been placed successfully. A confirmation will be sent to your email.
         </p>
 
         {/* Order Details Card */}
@@ -31,14 +44,14 @@ export const PaymentSuccess = () => {
             <span>Order Reference:</span>
             <span style={{ color: '#ff6b00', fontWeight: '700', fontFamily: 'monospace' }}>{orderId}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px', color: '#9ca3af' }}>
-            <span>Item:</span>
-            <span style={{ color: '#f3f4f6', fontWeight: '600' }}>1x Nike Pegasus 40</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px', color: '#9ca3af' }}>
-            <span>Total Paid:</span>
-            <span style={{ color: '#10b981', fontWeight: '700' }}>Rs. 29,500.00 LKR</span>
-          </div>
+          {amountPaid && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '13px', color: '#9ca3af' }}>
+              <span>Total Paid:</span>
+              <span style={{ color: '#10b981', fontWeight: '700' }}>
+                {currency} {parseFloat(amountPaid).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#9ca3af', paddingTop: '10px', borderTop: '1px solid #1f2937' }}>
             <span>Payment Method:</span>
             <span style={{ color: '#f3f4f6', fontWeight: '600' }}>PayHere Sandbox</span>
@@ -70,7 +83,7 @@ export const PaymentSuccess = () => {
           </a>
 
           <a
-            href="/checkout"
+            href="/products"
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -85,7 +98,8 @@ export const PaymentSuccess = () => {
               fontSize: '14px',
             }}
           >
-            <span>Place another order</span>
+            <ShoppingBag size={16} />
+            <span>Continue Shopping</span>
             <ArrowRight size={16} />
           </a>
         </div>
