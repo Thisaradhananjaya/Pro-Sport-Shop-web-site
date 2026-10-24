@@ -3,9 +3,15 @@ const API_BASE = '/api';
 /** Get stored JWT token (shared key with AuthContext) */
 const getToken = () => localStorage.getItem('prosport_token');
 
-/** Build standard auth headers */
+/** Build standard auth headers (JSON) */
 const authHeaders = () => ({
   'Content-Type': 'application/json',
+  Authorization: `Bearer ${getToken()}`,
+});
+
+/** Auth headers without Content-Type — used for multipart/form-data so the
+ *  browser sets the correct boundary automatically. */
+const authHeadersMultipart = () => ({
   Authorization: `Bearer ${getToken()}`,
 });
 
@@ -37,20 +43,77 @@ export const adminFetchProducts = async (params = {}) => {
   return res.json();
 };
 
+/**
+ * adminCreateProduct
+ * Accepts a plain object that may contain a `imageFile` (File object).
+ * If imageFile is provided, sends multipart/form-data so Multer can save it.
+ * Otherwise falls back to JSON (image URL string in the object).
+ */
 export const adminCreateProduct = async (productData) => {
+  const { imageFile, ...rest } = productData;
+
+  if (imageFile instanceof File) {
+    // Build FormData for multipart upload
+    const fd = new FormData();
+    fd.append('image', imageFile);
+
+    // Append all other scalar fields
+    Object.entries(rest).forEach(([key, value]) => {
+      if (key === 'specs') {
+        fd.append('specs', JSON.stringify(value));
+      } else if (value !== undefined && value !== null) {
+        fd.append(key, String(value));
+      }
+    });
+
+    const res = await fetch(`${API_BASE}/products`, {
+      method: 'POST',
+      headers: authHeadersMultipart(),
+      body: fd,
+    });
+    return res.json();
+  }
+
+  // No file — send JSON (imageFile is undefined, image should be a URL string)
   const res = await fetch(`${API_BASE}/products`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify(productData),
+    body: JSON.stringify(rest),
   });
   return res.json();
 };
 
+/**
+ * adminUpdateProduct
+ * Same file-vs-JSON logic as adminCreateProduct.
+ */
 export const adminUpdateProduct = async (id, productData) => {
+  const { imageFile, ...rest } = productData;
+
+  if (imageFile instanceof File) {
+    const fd = new FormData();
+    fd.append('image', imageFile);
+
+    Object.entries(rest).forEach(([key, value]) => {
+      if (key === 'specs') {
+        fd.append('specs', JSON.stringify(value));
+      } else if (value !== undefined && value !== null) {
+        fd.append(key, String(value));
+      }
+    });
+
+    const res = await fetch(`${API_BASE}/products/${id}`, {
+      method: 'PUT',
+      headers: authHeadersMultipart(),
+      body: fd,
+    });
+    return res.json();
+  }
+
   const res = await fetch(`${API_BASE}/products/${id}`, {
     method: 'PUT',
     headers: authHeaders(),
-    body: JSON.stringify(productData),
+    body: JSON.stringify(rest),
   });
   return res.json();
 };

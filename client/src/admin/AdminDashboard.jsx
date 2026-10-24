@@ -163,7 +163,15 @@ function DashboardHome({ stats, products }) {
                   <tr key={pid}>
                     <td>
                       <div className="admin-table-cell-flex">
-                        <img src={p.image} alt={p.title} className="admin-product-img" />
+                        <img
+                          src={
+                            p.image && !p.image.startsWith('http') && !p.image.startsWith('data:')
+                              ? `http://localhost:5000${p.image}`
+                              : p.image
+                          }
+                          alt={p.title}
+                          className="admin-product-img"
+                        />
                         <div>
                           <div className="admin-product-name">{p.title}</div>
                           <div className="admin-product-brand">{p.brand}</div>
@@ -271,7 +279,15 @@ function ProductsView({ products, onAdd, onEdit, onDelete }) {
                     <tr key={pid}>
                       <td>
                         <div className="admin-table-cell-flex">
-                          <img src={p.image} alt={p.title} className="admin-product-img" />
+                          <img
+                            src={
+                              p.image && !p.image.startsWith('http') && !p.image.startsWith('data:')
+                                ? `http://localhost:5000${p.image}`
+                                : p.image
+                            }
+                            alt={p.title}
+                            className="admin-product-img"
+                          />
                           <div>
                             <div className="admin-product-name" title={p.title}>{p.title}</div>
                             <div className="admin-product-brand">{p.brand}</div>

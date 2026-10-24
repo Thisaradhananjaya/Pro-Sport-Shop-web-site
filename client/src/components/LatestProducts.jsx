@@ -75,7 +75,11 @@ export const LatestProducts = ({ products = [], onSelectCategory, activeCategory
                 {/* Product Image Box */}
                 <div className="product-img-box">
                   <img
-                    src={product.image}
+                    src={
+                      product.image && !product.image.startsWith('http') && !product.image.startsWith('data:')
+                        ? `http://localhost:5000${product.image}`
+                        : product.image
+                    }
                     alt={product.title}
                     className="product-img"
                     loading="lazy"

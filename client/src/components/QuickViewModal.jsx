@@ -69,7 +69,11 @@ export const QuickViewModal = () => {
               }}
             >
               <img
-                src={quickViewProduct.image}
+                src={
+                  quickViewProduct.image && !quickViewProduct.image.startsWith('http') && !quickViewProduct.image.startsWith('data:')
+                    ? `http://localhost:5000${quickViewProduct.image}`
+                    : quickViewProduct.image
+                }
                 alt={quickViewProduct.title}
                 style={{ maxHeight: '220px', maxWidth: '100%', objectFit: 'contain' }}
               />

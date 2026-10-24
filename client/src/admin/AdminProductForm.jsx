@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const CATEGORIES = ['CRICKET', 'BADMINTON', 'FOOTBALL', 'FITNESS', 'RUNNING', 'APPAREL'];
 
@@ -7,7 +7,8 @@ const EMPTY_FORM = {
   category: 'CRICKET',
   price: '',
   originalPrice: '',
-  image: '',
+  image: '',      // existing URL (used when editing without re-uploading)
+  imageFile: null, // File object from the file input
   brand: '',
   description: '',
   rating: '4.8',
@@ -18,8 +19,10 @@ const EMPTY_FORM = {
 };
 
 export function AdminProductForm({ initial = null, onSave, onCancel, saving = false }) {
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [imgError, setImgError] = useState(false);
+  const [form, setForm]         = useState(EMPTY_FORM);
+  const [previewUrl, setPreview] = useState('');
+  const [imgError, setImgError]  = useState(false);
+  const fileRef                  = useRef(null);
 
   // Populate form when editing
   useEffect(() => {
@@ -27,18 +30,31 @@ export function AdminProductForm({ initial = null, onSave, onCancel, saving = fa
       setForm({
         ...EMPTY_FORM,
         ...initial,
-        price: String(initial.price ?? ''),
+        price:        String(initial.price ?? ''),
         originalPrice: String(initial.originalPrice ?? ''),
-        rating: String(initial.rating ?? '4.8'),
+        rating:       String(initial.rating ?? '4.8'),
         reviewsCount: String(initial.reviewsCount ?? '24'),
+        imageFile:    null, // never pre-fill a File object
         specs: Array.isArray(initial.specs) && initial.specs.length > 0
           ? initial.specs.map(s => ({ label: s.label || '', value: s.value || '' }))
           : [{ label: '', value: '' }],
       });
+      // Show the existing image URL as preview when editing
+      setPreview(initial.image ? getDisplayUrl(initial.image) : '');
+      setImgError(false);
     } else {
       setForm(EMPTY_FORM);
+      setPreview('');
+      setImgError(false);
     }
   }, [initial]);
+
+  // Derive the full URL for an image stored as /uploads/... or a full http URL
+  const getDisplayUrl = (src) => {
+    if (!src) return '';
+    if (src.startsWith('http') || src.startsWith('data:')) return src;
+    return `http://localhost:5000${src}`;
+  };
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -50,22 +66,48 @@ export function AdminProductForm({ initial = null, onSave, onCancel, saving = fa
     });
   };
 
-  const addSpec = () => setForm(prev => ({ ...prev, specs: [...prev.specs, { label: '', value: '' }] }));
-
+  const addSpec    = () => setForm(prev => ({ ...prev, specs: [...prev.specs, { label: '', value: '' }] }));
   const removeSpec = (index) =>
     setForm(prev => ({ ...prev, specs: prev.specs.filter((_, i) => i !== index) }));
 
+  // Handle file selection: store File object + generate local preview
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImgError(false);
+    set('imageFile', file);
+    // Generate a temporary local preview URL
+    const localUrl = URL.createObjectURL(file);
+    setPreview(localUrl);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Must have either a new file or an existing image URL
+    if (!form.imageFile && !form.image) {
+      alert('Please select a product image.');
+      return;
+    }
+
     const payload = {
-      ...form,
-      price: Number(form.price),
+      title:         form.title,
+      brand:         form.brand,
+      category:      form.category.toUpperCase(),
+      price:         Number(form.price),
       originalPrice: form.originalPrice ? Number(form.originalPrice) : undefined,
-      rating: Number(form.rating),
-      reviewsCount: Number(form.reviewsCount),
-      category: form.category.toUpperCase(),
-      specs: form.specs.filter(s => s.label.trim() || s.value.trim()),
+      rating:        Number(form.rating),
+      reviewsCount:  Number(form.reviewsCount),
+      description:   form.description,
+      inStock:       form.inStock,
+      featured:      form.featured,
+      specs:         form.specs.filter(s => s.label.trim() || s.value.trim()),
+      // imageFile is a File object — adminApi.js detects this and uses FormData
+      imageFile:     form.imageFile || undefined,
+      // image is the existing URL when editing without re-uploading
+      image:         form.imageFile ? undefined : form.image,
     };
+
     onSave(payload);
   };
 
@@ -168,30 +210,35 @@ export function AdminProductForm({ initial = null, onSave, onCancel, saving = fa
             />
           </div>
 
-          {/* Image */}
+          {/* Image Upload */}
           <div className="admin-form-group-admin full-width">
-            <label className="admin-label">Product Image *</label>
+            <label className="admin-label">
+              Product Image {!isEditing && '*'}
+              {isEditing && (
+                <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 400, marginLeft: 8 }}>
+                  (leave blank to keep current image)
+                </span>
+              )}
+            </label>
+
             <input
+              ref={fileRef}
               className="admin-input"
               type="file"
               accept="image/*"
-              required={!form.image}
-              onChange={e => {
-                const file = e.target.files[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = ev => {
-                    set('image', ev.target.result);
-                    setImgError(false);
-                  };
-                  reader.onerror = () => setImgError(true);
-                  reader.readAsDataURL(file);
-                }
-              }}
+              id="product-image-input"
+              required={!isEditing && !form.image}
+              onChange={handleFileChange}
             />
-            {form.image && !imgError && (
+
+            {/* Live preview */}
+            {previewUrl && !imgError && (
               <div className="admin-img-preview">
-                <img src={form.image} alt="Preview" onError={() => setImgError(true)} />
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  onError={() => setImgError(true)}
+                />
               </div>
             )}
             {imgError && (
