@@ -57,7 +57,15 @@ export const CartDrawer = () => {
               const id = item.id || item._id;
               return (
                 <div key={id} className="cart-item-card">
-                  <img src={item.image} alt={item.title} className="cart-item-img" />
+                  <img
+                    src={
+                      item.image && !item.image.startsWith('http') && !item.image.startsWith('data:')
+                        ? `http://localhost:5000${item.image}`
+                        : item.image
+                    }
+                    alt={item.title}
+                    className="cart-item-img"
+                  />
                   <div className="cart-item-details">
                     <h5 className="cart-item-title">{item.title}</h5>
                     <div className="cart-item-price">{formatPrice(item.price)}</div>
