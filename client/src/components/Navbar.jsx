@@ -126,7 +126,15 @@ export const Navbar = ({
                       if (onSelectProduct) onSelectProduct(item);
                     }}
                   >
-                    <img src={item.image} alt={item.title} className="search-result-img" />
+                    <img
+                      src={
+                        item.image && !item.image.startsWith('http') && !item.image.startsWith('data:')
+                          ? `http://localhost:5000${item.image}`
+                          : item.image
+                      }
+                      alt={item.title}
+                      className="search-result-img"
+                    />
                     <div className="search-result-info">
                       <div className="search-result-category">{item.category}</div>
                       <div className="search-result-title">{item.title}</div>

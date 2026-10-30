@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { ShieldCheck, Lock, CreditCard, ShoppingBag, ArrowLeft, AlertCircle, CheckCircle2, ShoppingCart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -334,7 +334,7 @@ export const CheckoutPage = () => {
                     >
                       {item.image && (
                         <img
-                          src={item.image}
+                          src={item.image?.startsWith('/') ? `http://localhost:5000${item.image}` : item.image}
                           alt={item.title}
                           style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #374151', flexShrink: 0 }}
                         />
