@@ -6,6 +6,7 @@ import {
   adminCreateProduct,
   adminUpdateProduct,
   adminDeleteProduct,
+  fetchTopSellingProducts,
 } from './adminApi';
 
 /* ---- Icon helpers (inline SVG) ---- */
@@ -39,6 +40,9 @@ const Icon = {
   ),
   X: () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  ),
+  TrendingUp: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
   ),
 };
 
@@ -80,7 +84,7 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }) {
 /* ================================================================
    DASHBOARD HOME VIEW
    ================================================================ */
-function DashboardHome({ stats, products }) {
+function DashboardHome({ stats, products, topProducts }) {
   const catEntries = stats?.categoryBreakdown ? Object.entries(stats.categoryBreakdown) : [];
 
   return (
@@ -194,6 +198,79 @@ function DashboardHome({ stats, products }) {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Top Selling Products */}
+      <div className="admin-card" style={{ marginTop: 24 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 18 }}>🏆</span>
+          <div className="admin-section-title" style={{ fontSize: 15 }}>Highest Selling Products</div>
+        </div>
+        {!topProducts || topProducts.length === 0 ? (
+          <div className="admin-empty" style={{ padding: '32px 20px' }}>
+            <div className="admin-empty-icon">📊</div>
+            <h4>No sales data yet</h4>
+            <p>Top selling products will appear here once orders are placed.</p>
+          </div>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 50 }}>Rank</th>
+                  <th>Product Title</th>
+                  <th style={{ textAlign: 'center' }}>Qty Sold</th>
+                  <th style={{ textAlign: 'right' }}>Total Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topProducts.map((item, index) => (
+                  <tr key={item.productId || item.title}>
+                    <td>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 28, height: 28, borderRadius: '50%', fontWeight: 700, fontSize: 13,
+                        background: index === 0 ? '#f59e0b22' : index === 1 ? '#9ca3af22' : index === 2 ? '#cd7c3a22' : 'var(--bg-secondary)',
+                        color: index === 0 ? '#f59e0b' : index === 1 ? '#9ca3af' : index === 2 ? '#cd7c3a' : 'var(--text-secondary)',
+                        border: `1px solid ${index === 0 ? '#f59e0b55' : index === 1 ? '#9ca3af55' : index === 2 ? '#cd7c3a55' : 'var(--border-light)'}`,
+                      }}>
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {item.image && (
+                          <img
+                            src={
+                              item.image && !item.image.startsWith('http') && !item.image.startsWith('data:')
+                                ? `http://localhost:5000${item.image}`
+                                : item.image
+                            }
+                            alt={item.title}
+                            className="admin-product-img"
+                          />
+                        )}
+                        <div className="admin-product-name">{item.title}</div>
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{
+                        display: 'inline-block', padding: '3px 10px', borderRadius: 12,
+                        background: 'var(--bg-secondary)', fontWeight: 700, fontSize: 13,
+                        color: 'var(--text-primary)',
+                      }}>
+                        {item.totalQuantity}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="admin-price-primary">Rs. {Number(item.totalRevenue).toLocaleString()}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -338,12 +415,134 @@ function ProductsView({ products, onAdd, onEdit, onDelete }) {
 }
 
 /* ================================================================
+   TOP SELLING VIEW  (dedicated tab with auto-refresh)
+   ================================================================ */
+function TopSellingView({ topProducts, lastRefreshed, onRefresh }) {
+  return (
+    <div>
+      {/* Header row */}
+      <div className="admin-section-header">
+        <div>
+          <div className="admin-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            🏆 Highest Selling Products
+          </div>
+          <div className="admin-section-subtitle">
+            Auto-refreshes every 10 s
+            {lastRefreshed && (
+              <span style={{ marginLeft: 10, color: 'var(--text-muted)', fontSize: 12 }}>
+                · Last updated {lastRefreshed.toLocaleTimeString()}
+              </span>
+            )}
+          </div>
+        </div>
+        <button className="admin-btn admin-btn-ghost" onClick={onRefresh} title="Refresh now">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0114.36-3.36L23 10M1 14l5.13 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+
+      <div className="admin-card">
+        {!topProducts || topProducts.length === 0 ? (
+          <div className="admin-empty" style={{ padding: '48px 20px' }}>
+            <div className="admin-empty-icon">📊</div>
+            <h4>No sales data yet</h4>
+            <p>Top selling products will appear here once orders are placed and synced.</p>
+          </div>
+        ) : (
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 56 }}>Rank</th>
+                  <th>Product</th>
+                  <th style={{ textAlign: 'center' }}>Qty Sold</th>
+                  <th style={{ textAlign: 'right' }}>Total Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topProducts.map((item, index) => (
+                  <tr key={item.productId || item.title}>
+                    {/* Rank cell */}
+                    <td>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: 32, height: 32, borderRadius: '50%', fontWeight: 700, fontSize: 14,
+                        background:
+                          index === 0 ? 'rgba(245,158,11,0.15)'
+                          : index === 1 ? 'rgba(156,163,175,0.15)'
+                          : index === 2 ? 'rgba(205,124,58,0.15)'
+                          : 'var(--bg-secondary)',
+                        border: `1px solid ${
+                          index === 0 ? 'rgba(245,158,11,0.4)'
+                          : index === 1 ? 'rgba(156,163,175,0.4)'
+                          : index === 2 ? 'rgba(205,124,58,0.4)'
+                          : 'var(--border-light)'}`,
+                      }}>
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                      </span>
+                    </td>
+
+                    {/* Product cell */}
+                    <td>
+                      <div className="admin-table-cell-flex">
+                        {item.image && (
+                          <img
+                            src={
+                              !item.image.startsWith('http') && !item.image.startsWith('data:')
+                                ? `http://localhost:5000${item.image}`
+                                : item.image
+                            }
+                            alt={item.title}
+                            className="admin-product-img"
+                          />
+                        )}
+                        <div className="admin-product-name">{item.title}</div>
+                      </div>
+                    </td>
+
+                    {/* Qty cell */}
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '4px 14px', borderRadius: 20,
+                        background: 'var(--brand-orange-light)',
+                        border: '1px solid var(--border-orange)',
+                        fontWeight: 800, fontSize: 14,
+                        color: 'var(--brand-orange)',
+                      }}>
+                        {item.totalQuantity}
+                      </span>
+                    </td>
+
+                    {/* Revenue cell */}
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="admin-price-primary" style={{ fontSize: 15 }}>
+                        Rs. {Number(item.totalRevenue).toLocaleString()}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
    MAIN DASHBOARD
    ================================================================ */
 export function AdminDashboard({ admin, onLogout }) {
-  const [view, setView] = useState('dashboard'); // 'dashboard' | 'products' | 'add' | 'edit'
+  const [view, setView] = useState('dashboard'); // 'dashboard' | 'products' | 'top-selling' | 'add' | 'edit'
   const [products, setProducts] = useState([]);
   const [stats, setStats] = useState(null);
+  const [topProducts, setTopProducts] = useState([]);
+  const [lastRefreshed, setLastRefreshed] = useState(null);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -373,10 +572,31 @@ export function AdminDashboard({ admin, onLogout }) {
     } catch { /* stats are non-critical */ }
   }, []);
 
+  const loadTopProducts = useCallback(async () => {
+    try {
+      const data = await fetchTopSellingProducts();
+      if (data.success) {
+        setTopProducts(data.data || []);
+        setLastRefreshed(new Date());
+      }
+    } catch { /* top products are non-critical */ }
+  }, []);
+
+  // Initial data load
   useEffect(() => {
     loadProducts();
     loadStats();
-  }, [loadProducts, loadStats]);
+    loadTopProducts();
+  }, [loadProducts, loadStats, loadTopProducts]);
+
+  // Auto-refresh top-selling data every 10 seconds
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      loadTopProducts();
+    }, 10000);
+    // Clear the interval when the component unmounts to prevent memory leaks
+    return () => clearInterval(intervalId);
+  }, [loadTopProducts]);
 
   /* Save product (create or update) */
   const handleSave = async (formData) => {
@@ -427,16 +647,18 @@ export function AdminDashboard({ admin, onLogout }) {
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Icon.Dashboard },
-    { id: 'products', label: 'All Products', icon: Icon.Products },
-    { id: 'add', label: 'Add Product', icon: Icon.Add },
+    { id: 'dashboard',    label: 'Dashboard',        icon: Icon.Dashboard },
+    { id: 'products',     label: 'All Products',     icon: Icon.Products },
+    { id: 'top-selling',  label: 'Highest Selling',  icon: Icon.TrendingUp },
+    { id: 'add',          label: 'Add Product',      icon: Icon.Add },
   ];
 
   const topbarInfo = {
-    dashboard: { title: 'Dashboard', subtitle: 'Store overview & statistics' },
-    products: { title: 'Products', subtitle: 'Manage your product catalog' },
-    add: { title: 'Add New Product', subtitle: 'Create a new product listing' },
-    edit: { title: 'Edit Product', subtitle: `Editing: ${editTarget?.title || ''}` },
+    dashboard:   { title: 'Dashboard',            subtitle: 'Store overview & statistics' },
+    products:    { title: 'Products',             subtitle: 'Manage your product catalog' },
+    'top-selling': { title: 'Highest Selling',    subtitle: 'Real-time best-selling products · auto-refreshes every 10 s' },
+    add:         { title: 'Add New Product',      subtitle: 'Create a new product listing' },
+    edit:        { title: 'Edit Product',         subtitle: `Editing: ${editTarget?.title || ''}` },
   };
 
   const adminInitial = admin?.name
@@ -517,7 +739,7 @@ export function AdminDashboard({ admin, onLogout }) {
           ) : (
             <>
               {view === 'dashboard' && (
-                <DashboardHome stats={stats} products={products} />
+                <DashboardHome stats={stats} products={products} topProducts={topProducts} />
               )}
               {view === 'products' && (
                 <ProductsView
@@ -525,6 +747,13 @@ export function AdminDashboard({ admin, onLogout }) {
                   onAdd={() => { setView('add'); setEditTarget(null); }}
                   onEdit={p => { setEditTarget(p); setView('edit'); }}
                   onDelete={p => setDeleteTarget(p)}
+                />
+              )}
+              {view === 'top-selling' && (
+                <TopSellingView
+                  topProducts={topProducts}
+                  lastRefreshed={lastRefreshed}
+                  onRefresh={loadTopProducts}
                 />
               )}
               {(view === 'add' || view === 'edit') && (

@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const Admin = require('../models/Admin');
 const Product = require('../models/Product');
+const Order = require('../models/Order');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'prosport_jwt_super_secret_change_in_production_2026';
 const JWT_EXPIRES = '7d';
@@ -84,5 +85,66 @@ exports.getStats = async (req, res) => {
   } catch (error) {
     console.error('Error in getStats:', error);
     res.status(500).json({ success: false, message: 'Server error fetching stats' });
+  }
+};
+
+/**
+ * GET /api/admin/top-products
+ * Aggregates Order items to find the top 10 best-selling products.
+ * Groups by product title, sums quantity sold and total revenue.
+ * Sorted descending by quantity sold. Protected admin route.
+ */
+exports.getTopSellingProducts = async (req, res) => {
+  try {
+    const isMongoConnected = Order.db && Order.db.readyState === 1;
+
+    if (!isMongoConnected) {
+      // Return empty data when DB is not available
+      return res.json({ success: true, data: [] });
+    }
+
+    const topProducts = await Order.aggregate([
+      // Only consider active (non-cancelled) orders
+      { $match: { status: { $ne: 'Cancelled' } } },
+
+      // Unwind the items array so each order item becomes its own document
+      { $unwind: '$items' },
+
+      // Group by product title (falls back to productId string if title is missing)
+      {
+        $group: {
+          _id: {
+            title: { $ifNull: ['$items.title', { $toString: '$items.productId' }] },
+            productId: '$items.productId',
+          },
+          totalQuantity: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
+          image: { $first: '$items.image' },
+        },
+      },
+
+      // Sort by quantity sold descending
+      { $sort: { totalQuantity: -1 } },
+
+      // Limit to top 10
+      { $limit: 10 },
+
+      // Reshape output
+      {
+        $project: {
+          _id: 0,
+          title: '$_id.title',
+          productId: '$_id.productId',
+          image: 1,
+          totalQuantity: 1,
+          totalRevenue: { $round: ['$totalRevenue', 2] },
+        },
+      },
+    ]);
+
+    return res.json({ success: true, data: topProducts });
+  } catch (error) {
+    console.error('Error in getTopSellingProducts:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching top-selling products' });
   }
 };

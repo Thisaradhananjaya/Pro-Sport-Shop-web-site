@@ -72,7 +72,27 @@ export const CheckoutPage = () => {
         throw new Error('Invalid payment initialization response from server.');
       }
 
-      // 4. Create a dynamic hidden HTML form and submit to PayHere Sandbox
+      // 4. Save checkout snapshot to localStorage so PaymentSuccess can create the order
+      localStorage.setItem('prosport_pending_order', JSON.stringify({
+        customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        paymentMethod: 'CARD',
+        items: cartItems.map(item => ({
+          productId: item._id || item.id || null,
+          title: item.title,
+          price: item.price,
+          quantity: item.quantity || 1,
+          image: item.image || '',
+        })),
+        subtotal: amount,
+        shipping: 0,
+        totalAmount: amount,
+      }));
+
+      // 5. Create a dynamic hidden HTML form and submit to PayHere Sandbox
       const form = document.createElement('form');
       form.method = 'POST';
       form.action = actionUrl;

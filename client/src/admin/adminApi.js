@@ -33,6 +33,11 @@ export const fetchAdminStats = async () => {
   return res.json();
 };
 
+export const fetchTopSellingProducts = async () => {
+  const res = await fetch(`${API_BASE}/admin/top-products`, { headers: authHeaders() });
+  return res.json();
+};
+
 /* ---- Products ---- */
 
 export const adminFetchProducts = async (params = {}) => {
